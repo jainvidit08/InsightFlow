@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Large-Scale Data Platform</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 </head>
 <body>
     <header>
@@ -26,21 +27,25 @@
             <p id="statusMessage">Waiting for dataset...</p>
             <button id="clearBtn" class="btn-danger" style="margin-top: 15px;">Clear Workspace</button>
         </section>
-        <section class="schema-section" style="margin-top: 40px; display: none;" id="schemaSection">
-            <h2>Dataset Overview</h2>
-            <p id="rowCountDisplay" style="color: var(--primary-yellow); font-weight: bold;"></p>
-            
-            <div class="schema-grid-container">
-                <table id="schemaTable" class="styled-table">
+        <section id="schemaSection" style="display: none; margin-top: 30px;">
+                <h2 style="color: var(--primary-yellow);">Dataset Overview</h2>
+                <p id="rowCountDisplay" style="color: #AAAAAA; font-style: italic;"></p>
+                
+                <table class="styled-table">
                     <thead>
                         <tr>
-                            <th>Column Name</th>
-                            <th>Data Type</th>
-                        </tr>
+                            <th style="width: 40%;">Column Name</th>
+                            <th style="width: 40%;">Data Type</th>
+                            <th style="width: 20%; text-align: right;">Action</th> </tr>
                     </thead>
                     <tbody id="schemaBody">
                         </tbody>
                 </table>
+            </section>
+        <section id="insightsGallery" style="margin-top: 30px; display: none; background-color: var(--panel-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+            <h2 style="margin-top: 0; color: #FFD700;">Data Insights Gallery</h2>
+            <div style="position: relative; height: 300px; width: 100%;">
+                <canvas id="mainChart"></canvas>
             </div>
         </section>
         <section class="recipe-section" style="margin-top: 40px;">
@@ -91,6 +96,6 @@
 
     </main>
 
-    <script src="{{ url_for('static', filename='main.js') }}"></script>
+    <script src="{{ url_for('static', filename='main.js') }}?v=2.0"></script>
 </body>
 </html>

@@ -177,7 +177,8 @@ actionSelect.addEventListener('change', function() {
     // --- NEW CODE: Dynamic Inputs for PCA ---
     else if (action === 'apply_pca') {
         dynamicInputs.innerHTML = `
-            <p style="color: #AAAAAA; font-size: 0.9em; margin-top: 0;">Compress all numeric columns into Principal Components.</p>
+            <p style="color: #AAAAAA; font-size: 0.9em; margin-top: 0;">Compress numeric columns into Principal Components.</p>
+            <input type="text" id="targetCol" class="input-theme" placeholder="Specific Columns (comma-separated) or leave blank for ALL" style="width:100%; margin-bottom:10px;">
             <input type="number" id="pcaComponents" class="input-theme" placeholder="Number of Components (e.g., 2)" min="1" style="width:100%;">
         `;
     }
@@ -205,7 +206,14 @@ addStepBtn.addEventListener('click', () => {
     if (action === 'remove_outliers') stepData.strategy = document.getElementById('outlierStrategy').value;
     if (action === 'apply_pca') {
         const componentsInput = document.getElementById('pcaComponents').value;
-        stepData.components = componentsInput ? parseInt(componentsInput) : 2; // Default to 2 if left blank
+        stepData.components = componentsInput ? parseInt(componentsInput) : 2; // Default to 2
+        
+        const targetInput = document.getElementById('targetCol');
+        if (targetInput && targetInput.value.trim()) {
+            stepData.target = targetInput.value.trim(); // User provided specific columns
+        } else {
+            stepData.target = "all"; // Default back to "do as usual"
+        }
     }
     // Push the compiled metadata to our state array
     transformationRecipe.push(stepData);
@@ -239,7 +247,10 @@ function formatActionText(step) {
     if (step.action === 'remove_outliers') return `Remove Outliers in [${step.target}] using ${step.strategy.toUpperCase()}`;
     if (step.action === 'scale_data') return `Scale [${step.target}] using ${step.strategy.toUpperCase()}`;
     if (step.action === 'encode_data') return `Encode [${step.target}] using ${step.strategy.toUpperCase()}`;
-    if (step.action === 'apply_pca') return `Apply PCA (Reduce dataset to ${step.components} components)`;
+    if (step.action === 'apply_pca') {
+        let targetText = step.target === 'all' ? 'All Numeric Cols' : step.target;
+        return `Apply PCA (${step.components} components) on [${targetText}]`;
+    }
     
     return `Unknown Action: ${step.action}`;
 }
@@ -309,45 +320,6 @@ document.getElementById('executeBtn').addEventListener('click', async () => {
     }
 });
 
-// --- SCHEMA VIEWER LOGIC ---
-async function fetchAndDisplaySchema() {
-    try {
-        const response = await fetch('/get_columns');
-        const result = await response.json();
-
-        if (result.status === "success") {
-            // Show the hidden section
-            document.getElementById('schemaSection').style.display = 'block';
-            
-            // Display row count
-            document.getElementById('rowCountDisplay').textContent = 
-                `Total Rows: ${result.total_rows.toLocaleString()}`;
-
-            // Populate the table
-            const schemaBody = document.getElementById('schemaBody');
-            schemaBody.innerHTML = ''; // Clear old data
-
-            // Loop through the dictionary (schema)
-            for (const [columnName, dataType] of Object.entries(result.schema)) {
-                const tr = document.createElement('tr');
-                
-                const tdName = document.createElement('td');
-                tdName.textContent = columnName;
-                
-                const tdType = document.createElement('td');
-                // Make the data types look a bit cleaner
-                tdType.textContent = dataType.replace('object', 'Text/String').replace('float64', 'Decimal').replace('int64', 'Integer');
-                
-                tr.appendChild(tdName);
-                tr.appendChild(tdType);
-                schemaBody.appendChild(tr);
-            }
-        }
-    } catch (error) {
-        console.error("Error fetching schema:", error);
-    }
-}
-
 // --- EXECUTION HISTORY STATE & RENDER ---
 let executionHistory = [];
 const historyList = document.getElementById('historyList');
@@ -402,3 +374,98 @@ document.getElementById('clearBtn').addEventListener('click', async () => {
         console.error("Error clearing workspace:", error);
     }
 });
+
+// --- NEW CODE: INSIGHTS GALLERY CHART LOGIC ---
+let myChart = null; // Global variable to hold the chart instance
+
+function renderChart(columnName) {
+    // 1. Unhide the gallery
+    document.getElementById('insightsGallery').style.display = 'block';
+    
+    // 2. Grab the canvas
+    const ctx = document.getElementById('mainChart').getContext('2d');
+
+    // 3. Destroy the previous chart if it exists so they don't overlap
+    if (myChart) {
+        myChart.destroy();
+    }
+
+    // 4. Draw the temporary dummy chart
+    myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Bin 1', 'Bin 2', 'Bin 3', 'Bin 4', 'Bin 5'],
+            datasets: [{
+                label: `Distribution of ${columnName} (Simulated)`,
+                data: [12, 19, 3, 5, 2],
+                backgroundColor: 'rgba(255, 215, 0, 0.6)', // Yellow theme
+                borderColor: 'rgba(255, 215, 0, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#ccc' } },
+                x: { ticks: { color: '#ccc' } }
+            },
+            plugins: {
+                legend: { labels: { color: '#fff' } }
+            }
+        }
+    });
+}
+
+async function fetchAndDisplaySchema() {
+    try {
+        const response = await fetch('/get_columns');
+        const result = await response.json();
+
+        if (result.status === "success") {
+            document.getElementById('schemaSection').style.display = 'block';
+            document.getElementById('rowCountDisplay').textContent = `Total Rows: ${result.total_rows.toLocaleString()}`;
+
+            const schemaBody = document.getElementById('schemaBody');
+            schemaBody.innerHTML = ''; 
+
+            for (const [columnName, dataType] of Object.entries(result.schema)) {
+                
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = "1px solid #333";
+                
+                const tdName = document.createElement('td');
+                tdName.style.padding = "8px 0";
+                tdName.innerHTML = `<b>${columnName}</b>`;
+                
+                const tdType = document.createElement('td');
+                tdType.style.color = "#AAAAAA";
+                tdType.textContent = dataType.replace('object', 'Text/String').replace('float64', 'Decimal').replace('int64', 'Integer');
+                
+                // --- THE VISUALIZE BUTTON ---
+                const tdAction = document.createElement('td');
+                const visBtn = document.createElement('button');
+                visBtn.textContent = 'Visualize';
+                visBtn.className = 'btn-secondary';
+                visBtn.style.padding = '5px 10px';
+                visBtn.style.fontSize = '0.8em';
+                
+                visBtn.onclick = () => renderChart(columnName);
+                
+                tdAction.appendChild(visBtn);
+                // -----------------------------
+
+                // We are logging this to prove the code is reaching this exact line!
+                console.log(`Appending 3 columns for: ${columnName}`);
+
+                tr.appendChild(tdName);
+                tr.appendChild(tdType);
+                tr.appendChild(tdAction); 
+                
+                schemaBody.appendChild(tr);
+            }
+        }
+    } catch (error) {
+        console.error("Error fetching schema:", error);
+    }
+}

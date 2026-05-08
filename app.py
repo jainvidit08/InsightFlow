@@ -7,6 +7,8 @@ import sqlite3
 import shutil
 from dask_ml.preprocessing import StandardScaler
 from dask_ml.decomposition import PCA
+import dask.array as da
+import numpy as np
 
 app = Flask(__name__)
 
@@ -168,37 +170,54 @@ def execute_recipe():
                     # [cite: 1101] One-Hot Encoding: Creates binary columns and drops the original text column
                     df = dd.get_dummies(df, columns=[target])
             
+            # --- UPGRADED CODE: SELECTIVE PCA WITH SAFE NAMING ---
             elif action == "apply_pca":
                 n_components = int(step.get("components", 2))
-                print(f"Executing: Applying PCA to reduce to {n_components} components")
+                target_cols_str = step.get("target", "all")
                 
-                # PCA only works on numbers. Safely isolate numeric columns.
-                numeric_cols = df.select_dtypes(include=['number']).columns
+                # 1. Determine which columns to use
+                if target_cols_str == "all":
+                    numeric_cols = list(df.select_dtypes(include=['number']).columns)
+                else:
+                    requested_cols = [c.strip() for c in target_cols_str.split(",")]
+                    numeric_cols = [c for c in requested_cols if c in df.columns]
+                
+                print(f"Executing: Applying PCA to {numeric_cols} to reduce to {n_components} components")
                 
                 if len(numeric_cols) > n_components:
                     from dask_ml.preprocessing import StandardScaler
                     from dask_ml.decomposition import PCA
                     
-                    # 1. Standardize the data so all features have equal weight
+                    # 2. Standardize only the selected columns
                     scaler = StandardScaler()
                     df_scaled = scaler.fit_transform(df[numeric_cols])
-                    
-                    # 2. Convert to Dask Array
                     dask_array = df_scaled.to_dask_array(lengths=True)
                     
                     # 3. Fit and Transform
                     pca = PCA(n_components=n_components)
                     pca_result = pca.fit_transform(dask_array)
                     
-                    # 4. Create new DataFrame with the Principal Components
-                    pca_cols = [f"PCA_Component_{i+1}" for i in range(n_components)]
-                    df_pca = dd.from_dask_array(pca_result, columns=pca_cols)
+                    # --- FIX: DYNAMIC NAMESPACE CALCULATION ---
+                    # Scan existing columns to find the highest PCA number so we don't overwrite!
+                    existing_pca_nums = [
+                        int(c.split('_')[-1]) for c in df.columns 
+                        if c.startswith("PCA_Component_") and c.split('_')[-1].isdigit()
+                    ]
+                    start_idx = max(existing_pca_nums) if existing_pca_nums else 0
                     
-                    # For this platform's scope, we replace the entire dataset with the compressed PCA features
-                    df = df_pca
+                    # 4. Create new PCA DataFrame using the safe offset numbers
+                    pca_cols = [f"PCA_Component_{start_idx + i + 1}" for i in range(n_components)]
+                    df_pca = dd.from_dask_array(pca_result, columns=pca_cols, index=df.index)
+                    # ------------------------------------------
+
+                    # 5. Drop the old columns and append the new safely-named super-columns
+                    df = df.drop(columns=numeric_cols)
+                    for col_name in pca_cols:
+                        df[col_name] = df_pca[col_name]
+                        
                 else:
                     print("Skipping PCA: Not enough numeric columns to reduce.")
-
+            # ---------------------------------------------
         # 4. Execute the computations and save to the TEMP directory
         print("Writing to temporary directory...")
         df.to_parquet(temp_path, engine='pyarrow')
