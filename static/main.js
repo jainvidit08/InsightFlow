@@ -106,22 +106,94 @@ document.getElementById('uploadBtn').addEventListener('click', async () => {
 let transformationRecipe = [];
 
 const actionSelect = document.getElementById('actionSelect');
-const targetInput = document.getElementById('targetInput');
+const dynamicInputs = document.getElementById('dynamicInputs');
+const addStepBtn = document.getElementById('addStepBtn');
 const recipeList = document.getElementById('recipeList');
 
-// 1. Add a step to the recipe
-document.getElementById('addStepBtn').addEventListener('click', () => {
-    const action = actionSelect.value;
-    const target = targetInput.value.trim();
+// 1. Listen for dropdown changes and inject the correct HTML inputs
+actionSelect.addEventListener('change', function() {
+    const action = this.value;
+    dynamicInputs.innerHTML = ''; // Clear previous inputs
+    
+    // Only show the "Add Step" button if a valid tool is selected
+    addStepBtn.style.display = action === 'none' ? 'none' : 'block';
 
-    if (!target) {
-        alert("Please enter a target column name.");
-        return;
+    if (action === 'drop_col') {
+        dynamicInputs.innerHTML = `<input type="text" id="targetCol" class="input-theme" placeholder="Target Column Name (e.g., Salary)" style="width:100%;">`;
+    } 
+    else if (action === 'fill_missing') {
+        dynamicInputs.innerHTML = `
+            <input type="text" id="targetCol" class="input-theme" placeholder="Target Column Name" style="width:100%; margin-bottom:10px;">
+            <select id="fillStrategy" class="input-theme" style="width:100%;">
+                <option value="mean">Mean (Average)</option>
+                <option value="median">Median</option>
+                <option value="zero">Fill with 0</option>
+            </select>
+        `;
+    } 
+    else if (action === 'remove_duplicates') {
+        dynamicInputs.innerHTML = `<p style="color: #AAAAAA; font-size: 0.9em; margin: 0;">This will scan the entire dataset and remove any exact duplicate rows.</p>`;
+    } 
+    else if (action === 'scale_data') {
+        dynamicInputs.innerHTML = `
+            <input type="text" id="targetCol" class="input-theme" placeholder="Target Column Name" style="width:100%; margin-bottom:10px;">
+            <select id="scaleStrategy" class="input-theme" style="width:100%;">
+                <option value="minmax">Min-Max Scaling [0, 1]</option>
+                <option value="standard">Standardization (Z-Score)</option>
+            </select>
+        `;
+    } 
+    else if (action === 'encode_data') {
+        dynamicInputs.innerHTML = `
+            <input type="text" id="targetCol" class="input-theme" placeholder="Categorical Column Name" style="width:100%; margin-bottom:10px;">
+            <select id="encodeStrategy" class="input-theme" style="width:100%;">
+                <option value="label">Label Encoding (1, 2, 3...)</option>
+                <option value="onehot">One-Hot Encoding (Binary Columns)</option>
+            </select>
+        `;
     }
 
-    // Push the metadata to our state array
-    transformationRecipe.push({ action: action, target: target });
-    targetInput.value = ''; // Clear input
+    else if (action === 'remove_duplicates') {
+        dynamicInputs.innerHTML = `<p style="color: #AAAAAA; font-size: 0.9em; margin: 0;">This will scan the entire dataset and remove any exact duplicate rows.</p>`;
+    } 
+    // --- NEW CODE: Dynamic Inputs for Outliers ---
+    else if (action === 'remove_outliers') {
+        dynamicInputs.innerHTML = `
+            <input type="text" id="targetCol" class="input-theme" placeholder="Numeric Column Name (e.g., Salary)" style="width:100%; margin-bottom:10px;">
+            <select id="outlierStrategy" class="input-theme" style="width:100%;">
+                <option value="iqr">Interquartile Range (IQR)</option>
+            </select>
+        `;
+    }
+});
+
+// 2. Add the dynamic step to the recipe array
+addStepBtn.addEventListener('click', () => {
+    const action = actionSelect.value;
+    let stepData = { action: action }; // Start building our JSON object
+
+    // Attempt to grab the target column if the current form has one
+    const targetInput = document.getElementById('targetCol');
+    if (targetInput) {
+        if (!targetInput.value.trim()) {
+            alert("Please enter a target column name.");
+            return;
+        }
+        stepData.target = targetInput.value.trim();
+    }
+
+    // Attempt to grab specific strategies based on the selected tool
+    if (action === 'fill_missing') stepData.strategy = document.getElementById('fillStrategy').value;
+    if (action === 'scale_data') stepData.strategy = document.getElementById('scaleStrategy').value;
+    if (action === 'encode_data') stepData.strategy = document.getElementById('encodeStrategy').value;
+    if (action === 'remove_outliers') stepData.strategy = document.getElementById('outlierStrategy').value; // NEW
+    // Push the compiled metadata to our state array
+    transformationRecipe.push(stepData);
+    
+    // Reset UI
+    actionSelect.value = 'none';
+    dynamicInputs.innerHTML = ''; 
+    addStepBtn.style.display = 'none';
     
     renderRecipe();
 });
@@ -139,6 +211,18 @@ async function syncRecipeToDatabase() {
     }
 }
 
+// --- NEW CODE: Human-Readable Text Formatter ---
+function formatActionText(step) {
+    if (step.action === 'drop_col') return `Drop Column [${step.target}]`;
+    if (step.action === 'fill_missing') return `Fill Missing in [${step.target}] using ${step.strategy.toUpperCase()}`;
+    if (step.action === 'remove_duplicates') return `Remove Exact Duplicate Rows`;
+    if (step.action === 'remove_outliers') return `Remove Outliers in [${step.target}] using ${step.strategy.toUpperCase()}`;
+    if (step.action === 'scale_data') return `Scale [${step.target}] using ${step.strategy.toUpperCase()}`;
+    if (step.action === 'encode_data') return `Encode [${step.target}] using ${step.strategy.toUpperCase()}`;
+    
+    return `Unknown Action: ${step.action}`;
+}
+
 // --- UPDATED RENDER FUNCTION ---
 function renderRecipe() {
     recipeList.innerHTML = ''; // Clear current UI list
@@ -151,8 +235,9 @@ function renderRecipe() {
 
     transformationRecipe.forEach((step, index) => {
         const li = document.createElement('li');
-        let actionText = step.action === 'drop_col' ? 'Drop Column' : 'Fill Missing Values';
-        li.textContent = `${index + 1}. ${actionText} -> [${step.target}]`;
+        
+        // FIX: Use our new formatter helper instead of the old if/else logic
+        li.textContent = `${index + 1}. ${formatActionText(step)}`;
 
         const removeBtn = document.createElement('button');
         removeBtn.textContent = '✖';
@@ -256,8 +341,10 @@ function renderHistory() {
 
     executionHistory.forEach((step, index) => {
         const li = document.createElement('li');
-        let actionText = step.action === 'drop_col' ? 'Dropped Column' : 'Filled Missing Values';
-        li.innerHTML = `✔️ Step ${index + 1}: ${actionText} -> [<b>${step.target}</b>]`;
+        
+        // FIX: Use the exact same formatter helper for the history log
+        li.innerHTML = `✔️ Step ${index + 1}: <b>${formatActionText(step)}</b>`;
+        
         historyList.appendChild(li);
     });
 }

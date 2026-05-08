@@ -47,12 +47,29 @@
             <h2>Transformation Recipe Book</h2>
             
             <div class="toolbox">
-                <select id="actionSelect" class="input-theme">
-                    <option value="drop_col">Drop Column</option>
-                    <option value="fill_missing">Fill Missing Values (0)</option>
+                <select id="actionSelect" class="input-theme" style="width: 100%; font-weight: bold;">
+                    <option value="none">-- Select a Preprocessing Tool --</option>
+                    
+                    <optgroup label="1. Data Cleaning">
+                        <option value="drop_col">Drop Column</option>
+                        <option value="fill_missing">Fill Missing Values</option>
+                        <option value="remove_duplicates">Remove Duplicate Rows</option>
+                        <option value="remove_outliers">Remove Outliers (IQR)</option>
+                    </optgroup>
+                    
+                    <optgroup label="2. Data Transformation">
+                        <option value="scale_data">Scale / Normalize Data</option>
+                        <option value="encode_data">Encode Categorical Data</option>
+                    </optgroup>
+
+                    <optgroup label="3. Feature Engineering">
+                        <option value="apply_pca">Principal Component Analysis (PCA)</option>
+                    </optgroup>
                 </select>
-                <input type="text" id="targetInput" class="input-theme" placeholder="Target Column Name">
-                <button id="addStepBtn" class="btn-secondary">Add Step</button>
+
+                <div id="dynamicInputs" class="dynamic-container" style="margin-top: 15px;"></div>
+
+                <button id="addStepBtn" class="btn-secondary" style="margin-top: 15px; width: 100%; display: none;">Add Step to Recipe</button>
             </div>
 
             <div class="recipe-list-container">

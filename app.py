@@ -100,17 +100,71 @@ def execute_recipe():
         df = dd.read_parquet(original_path)
 
         # 3. Apply transformations dynamically based on the JSON array
+        # 3. Apply transformations dynamically based on the JSON array
         for step in recipe:
             action = step.get("action")
             target = step.get("target")
+            strategy = step.get("strategy")
             
             if action == "drop_col":
                 print(f"Executing: Dropping column '{target}'")
                 df = df.drop(columns=[target])
                 
+            elif action == "remove_duplicates":
+                print("Executing: Removing exact duplicates")
+                df = df.drop_duplicates()
+                
             elif action == "fill_missing":
-                print(f"Executing: Filling missing values in '{target}' with 0")
-                df[target] = df[target].fillna(0)
+                print(f"Executing: Filling missing values in '{target}' using {strategy}")
+                if strategy == "zero":
+                    df[target] = df[target].fillna(0)
+                elif strategy == "mean":
+                    mean_val = df[target].mean().compute()
+                    df[target] = df[target].fillna(mean_val)
+                elif strategy == "median":
+                    # Dask computes approximate quantiles for speed on large data
+                    median_val = df[target].quantile(0.5).compute() 
+                    df[target] = df[target].fillna(median_val)
+                    
+            elif action == "remove_outliers":
+                print(f"Executing: Removing outliers in '{target}' using {strategy}")
+                if strategy == "iqr":
+                    Q1 = df[target].quantile(0.25).compute()
+                    Q3 = df[target].quantile(0.75).compute()
+                    IQR = Q3 - Q1
+                    lower_bound = Q1 - 1.5 * IQR
+                    upper_bound = Q3 + 1.5 * IQR
+                    df = df[(df[target] >= lower_bound) & (df[target] <= upper_bound)]
+            
+            elif action == "scale_data":
+                print(f"Executing: Scaling '{target}' using {strategy}")
+                if strategy == "minmax":
+                    # [cite: 1099] Min-Max Scaling: Squashes values into a [0, 1] range.
+                    col_min = df[target].min().compute()
+                    col_max = df[target].max().compute()
+                    # Prevent division by zero if all numbers in the column are identical
+                    if col_max != col_min:
+                        df[target] = (df[target] - col_min) / (col_max - col_min)
+                        
+                elif strategy == "standard":
+                    # [cite: 1100] Standardization: Centers data around a mean of 0.
+                    col_mean = df[target].mean().compute()
+                    col_std = df[target].std().compute()
+                    if col_std != 0:
+                        df[target] = (df[target] - col_mean) / col_std
+
+            elif action == "encode_data":
+                print(f"Executing: Encoding '{target}' using {strategy}")
+                # First, tell Dask to scan the column to identify all unique text categories
+                df[target] = df[target].astype('category').cat.as_known()
+                
+                if strategy == "label":
+                    # [cite: 1100] Label Encoding: Converts text labels into sequential numbers (0, 1, 2...)
+                    df[target] = df[target].cat.codes
+                    
+                elif strategy == "onehot":
+                    # [cite: 1101] One-Hot Encoding: Creates binary columns and drops the original text column
+                    df = dd.get_dummies(df, columns=[target])
 
         # 4. Execute the computations and save to the TEMP directory
         print("Writing to temporary directory...")
@@ -256,7 +310,7 @@ def get_app_state():
         return jsonify({"status": "error", "message": "Failed to read state."}), 500
     finally:
         conn.close()
-        
+
 @app.route('/clear_workspace', methods=['POST'])
 def clear_workspace():
     """Wipes the physical disk but leaves the database alone."""
