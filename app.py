@@ -379,6 +379,62 @@ def clear_workspace():
     except Exception as e:
         print(f"Error clearing workspace: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/get_column_summary', methods=['GET'])
+def get_column_summary():
+    """Lazily calculates histogram bins or category counts for a specific column."""
+    col_name = request.args.get('column')
+    
+    files = [f for f in os.listdir(UPLOAD_FOLDER) if f.endswith('.parquet')]
+    if not files:
+        return jsonify({"status": "error", "message": "No dataset found."}), 404
+
+    parquet_path = os.path.join(UPLOAD_FOLDER, files[0])
+    
+    # 1. Read metadata lazily
+    df = dd.read_parquet(parquet_path)
+
+    if col_name not in df.columns:
+        return jsonify({"status": "error", "message": "Column not found."}), 404
+
+    # 2. NUMERIC COLUMNS: Calculate Histogram Bins
+    if pd.api.types.is_numeric_dtype(df[col_name].dtype):
+        # Drop missing values to prevent math errors
+        clean_col = df[col_name].dropna()
+        
+        # We must compute min/max first to establish the boundary of our bins
+        col_min = clean_col.min().compute()
+        col_max = clean_col.max().compute()
+
+        if pd.isna(col_min) or col_min == col_max:
+             return jsonify({"status": "success", "labels": [str(col_min)], "data": [len(clean_col)]})
+
+        # Convert to Dask Array and compute 10 histogram bins
+        col_array = clean_col.to_dask_array(lengths=True)
+        counts, bin_edges = da.histogram(col_array, bins=10, range=[col_min, col_max])
+        
+        counts_result = counts.compute() # Trigger the actual calculation
+        
+        # Format the X-axis labels (e.g., "18 to 25")
+        labels = [f"{int(bin_edges[i])} to {int(bin_edges[i+1])}" for i in range(len(counts_result))]
+
+        return jsonify({
+            "status": "success",
+            "type": "numeric",
+            "labels": labels,
+            "data": counts_result.tolist()
+        })
+        
+    # 3. TEXT/CATEGORICAL COLUMNS: Calculate Top 10 Value Counts
+    else:
+        # Count the occurrences of each text label and grab the top 10
+        value_counts = df[col_name].value_counts().compute().head(10)
+        return jsonify({
+            "status": "success",
+            "type": "categorical",
+            "labels": value_counts.index.astype(str).tolist(),
+            "data": value_counts.values.tolist()
+        })
     
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

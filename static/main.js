@@ -375,48 +375,66 @@ document.getElementById('clearBtn').addEventListener('click', async () => {
     }
 });
 
-// --- NEW CODE: INSIGHTS GALLERY CHART LOGIC ---
-let myChart = null; // Global variable to hold the chart instance
+// --- UPDATED CODE: DYNAMIC INSIGHTS GALLERY ---
+let myChart = null; 
 
-function renderChart(columnName) {
-    // 1. Unhide the gallery
+async function renderChart(columnName) {
     document.getElementById('insightsGallery').style.display = 'block';
-    
-    // 2. Grab the canvas
     const ctx = document.getElementById('mainChart').getContext('2d');
 
-    // 3. Destroy the previous chart if it exists so they don't overlap
-    if (myChart) {
-        myChart.destroy();
-    }
+    // Add a loading indicator to the title so the user knows Dask is thinking
+    const titleElement = document.querySelector('#insightsGallery h2');
+    titleElement.textContent = `Calculating Insights for ${columnName}...`;
+    titleElement.style.color = "#AAAAAA";
 
-    // 4. Draw the temporary dummy chart
-    myChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Bin 1', 'Bin 2', 'Bin 3', 'Bin 4', 'Bin 5'],
-            datasets: [{
-                label: `Distribution of ${columnName} (Simulated)`,
-                data: [12, 19, 3, 5, 2],
-                backgroundColor: 'rgba(255, 215, 0, 0.6)', // Yellow theme
-                borderColor: 'rgba(255, 215, 0, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, ticks: { color: '#ccc' } },
-                x: { ticks: { color: '#ccc' } }
-            },
-            plugins: {
-                legend: { labels: { color: '#fff' } }
+    try {
+        // 1. Ask the Python backend to calculate the summary
+        const response = await fetch(`/get_column_summary?column=${encodeURIComponent(columnName)}`);
+        const result = await response.json();
+
+        if (result.status === "success") {
+            // Update Title
+            titleElement.textContent = `Data Insights: ${columnName}`;
+            titleElement.style.color = "var(--primary-yellow)";
+
+            if (myChart) {
+                myChart.destroy(); // Prevent chart overlapping
             }
-        }
-    });
-}
 
+            // 2. Inject the real Dask data into Chart.js
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: result.labels, // The real bin edges or categories
+                    datasets: [{
+                        label: `Frequency of ${columnName}`,
+                        data: result.data, // The real Dask counts
+                        backgroundColor: 'rgba(255, 215, 0, 0.6)', 
+                        borderColor: 'rgba(255, 215, 0, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: '#ccc' } },
+                        x: { ticks: { color: '#ccc' } }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#fff' } }
+                    }
+                }
+            });
+        } else {
+            alert("Error loading chart: " + result.message);
+            titleElement.textContent = "Data Insights Gallery";
+        }
+    } catch (error) {
+        console.error("Error fetching summary:", error);
+        titleElement.textContent = "Data Insights Gallery";
+    }
+}
 async function fetchAndDisplaySchema() {
     try {
         const response = await fetch('/get_columns');
