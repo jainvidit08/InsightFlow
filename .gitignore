@@ -1,0 +1,24 @@
+# --- Project Specific ---
+app_state.db
+uploads/
+temp_*.parquet
+# Your practice folders
+Practice/
+
+# --- Python / Flask ---
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+ENV/
+.env
+
+# --- OS & IDE Specific ---
+.DS_Store
+.vscode/
+.idea/
+
+# --- Data & Docs ---
+*.pdf
+*.csv
+*.parquet

@@ -1,0 +1,224 @@
+/* Sophisticated Dark & Yellow Theme */
+:root {
+    --primary-yellow: #FFD700;
+    --dark-bg: #1A1A1A;
+    --panel-bg: #2A2A2A;
+    --text-light: #F5F5F5;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--dark-bg);
+    color: var(--text-light);
+    margin: 0;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 40px;
+    border-bottom: 2px solid var(--primary-yellow);
+    padding-bottom: 15px;
+}
+
+.dashboard-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.upload-section {
+    background-color: var(--panel-bg);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    text-align: center;
+}
+
+.upload-box {
+    margin: 20px 0;
+}
+
+/* Primary Button Styling */
+.btn-primary {
+    background-color: var(--primary-yellow);
+    color: var(--dark-bg);
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: #E6C200; /* Slightly darker yellow on hover */
+}
+
+/* Progress Bar Styling */
+.progress-container {
+    width: 100%;
+    background-color: #444;
+    border-radius: 5px;
+    margin-top: 20px;
+    height: 20px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background-color: var(--primary-yellow);
+    transition: width 0.3s;
+}
+
+#statusMessage {
+    margin-top: 15px;
+    font-style: italic;
+    color: #AAAAAA;
+}
+
+/* Recipe Section Styling */
+.recipe-section {
+    background-color: var(--panel-bg);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.input-theme {
+    padding: 10px;
+    background-color: #333;
+    color: var(--text-light);
+    border: 1px solid #555;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+.btn-secondary {
+    background-color: transparent;
+    color: var(--primary-yellow);
+    border: 2px solid var(--primary-yellow);
+    padding: 8px 16px;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-secondary:hover {
+    background-color: var(--primary-yellow);
+    color: var(--dark-bg);
+}
+
+.recipe-list-container {
+    margin-top: 20px;
+    background-color: #1E1E1E;
+    padding: 15px;
+    border-radius: 5px;
+    min-height: 50px;
+}
+
+#recipeList {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+#recipeList li {
+    background-color: #333;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-left: 4px solid var(--primary-yellow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-remove {
+    background-color: transparent;
+    border: none;
+    color: #ff4c4c;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.empty-msg {
+    color: #888;
+    font-style: italic;
+    border: none !important;
+    background-color: transparent !important;
+}
+
+/* Schema Viewer Styling */
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 0.9em;
+    background-color: #1E1E1E;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.styled-table thead tr {
+    background-color: var(--primary-yellow);
+    color: var(--dark-bg);
+    text-align: left;
+}
+
+.styled-table th, .styled-table td {
+    padding: 12px 15px;
+}
+
+.styled-table tbody tr {
+    border-bottom: 1px solid #333;
+}
+
+.styled-table tbody tr:nth-of-type(even) {
+    background-color: #252525;
+}
+/* Execution History Styling */
+.history-section {
+    background-color: var(--panel-bg);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.history-list-container {
+    background-color: #1E1E1E;
+    padding: 15px;
+    border-radius: 5px;
+    min-height: 50px;
+}
+
+#historyList {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+#historyList li {
+    background-color: #252525; /* Slightly darker to look inactive */
+    margin-bottom: 10px;
+    padding: 10px;
+    border-left: 4px solid #4CAF50; /* Green for success */
+    color: #AAAAAA; /* Muted text */
+}
+.btn-danger {
+    background-color: transparent;
+    color: #ff4c4c;
+    border: 2px solid #ff4c4c;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-danger:hover {
+    background-color: #ff4c4c;
+    color: var(--dark-bg);
+}
