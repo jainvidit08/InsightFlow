@@ -5,6 +5,8 @@ from flask import Flask, render_template, request, jsonify
 import json
 import sqlite3
 import shutil
+from dask_ml.preprocessing import StandardScaler
+from dask_ml.decomposition import PCA
 
 app = Flask(__name__)
 
@@ -165,6 +167,37 @@ def execute_recipe():
                 elif strategy == "onehot":
                     # [cite: 1101] One-Hot Encoding: Creates binary columns and drops the original text column
                     df = dd.get_dummies(df, columns=[target])
+            
+            elif action == "apply_pca":
+                n_components = int(step.get("components", 2))
+                print(f"Executing: Applying PCA to reduce to {n_components} components")
+                
+                # PCA only works on numbers. Safely isolate numeric columns.
+                numeric_cols = df.select_dtypes(include=['number']).columns
+                
+                if len(numeric_cols) > n_components:
+                    from dask_ml.preprocessing import StandardScaler
+                    from dask_ml.decomposition import PCA
+                    
+                    # 1. Standardize the data so all features have equal weight
+                    scaler = StandardScaler()
+                    df_scaled = scaler.fit_transform(df[numeric_cols])
+                    
+                    # 2. Convert to Dask Array
+                    dask_array = df_scaled.to_dask_array(lengths=True)
+                    
+                    # 3. Fit and Transform
+                    pca = PCA(n_components=n_components)
+                    pca_result = pca.fit_transform(dask_array)
+                    
+                    # 4. Create new DataFrame with the Principal Components
+                    pca_cols = [f"PCA_Component_{i+1}" for i in range(n_components)]
+                    df_pca = dd.from_dask_array(pca_result, columns=pca_cols)
+                    
+                    # For this platform's scope, we replace the entire dataset with the compressed PCA features
+                    df = df_pca
+                else:
+                    print("Skipping PCA: Not enough numeric columns to reduce.")
 
         # 4. Execute the computations and save to the TEMP directory
         print("Writing to temporary directory...")

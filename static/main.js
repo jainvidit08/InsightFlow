@@ -165,6 +165,22 @@ actionSelect.addEventListener('change', function() {
             </select>
         `;
     }
+    else if (action === 'encode_data') {
+        dynamicInputs.innerHTML = `
+            <input type="text" id="targetCol" class="input-theme" placeholder="Categorical Column Name" style="width:100%; margin-bottom:10px;">
+            <select id="encodeStrategy" class="input-theme" style="width:100%;">
+                <option value="label">Label Encoding (1, 2, 3...)</option>
+                <option value="onehot">One-Hot Encoding (Binary Columns)</option>
+            </select>
+        `;
+    }
+    // --- NEW CODE: Dynamic Inputs for PCA ---
+    else if (action === 'apply_pca') {
+        dynamicInputs.innerHTML = `
+            <p style="color: #AAAAAA; font-size: 0.9em; margin-top: 0;">Compress all numeric columns into Principal Components.</p>
+            <input type="number" id="pcaComponents" class="input-theme" placeholder="Number of Components (e.g., 2)" min="1" style="width:100%;">
+        `;
+    }
 });
 
 // 2. Add the dynamic step to the recipe array
@@ -186,7 +202,11 @@ addStepBtn.addEventListener('click', () => {
     if (action === 'fill_missing') stepData.strategy = document.getElementById('fillStrategy').value;
     if (action === 'scale_data') stepData.strategy = document.getElementById('scaleStrategy').value;
     if (action === 'encode_data') stepData.strategy = document.getElementById('encodeStrategy').value;
-    if (action === 'remove_outliers') stepData.strategy = document.getElementById('outlierStrategy').value; // NEW
+    if (action === 'remove_outliers') stepData.strategy = document.getElementById('outlierStrategy').value;
+    if (action === 'apply_pca') {
+        const componentsInput = document.getElementById('pcaComponents').value;
+        stepData.components = componentsInput ? parseInt(componentsInput) : 2; // Default to 2 if left blank
+    }
     // Push the compiled metadata to our state array
     transformationRecipe.push(stepData);
     
@@ -219,6 +239,7 @@ function formatActionText(step) {
     if (step.action === 'remove_outliers') return `Remove Outliers in [${step.target}] using ${step.strategy.toUpperCase()}`;
     if (step.action === 'scale_data') return `Scale [${step.target}] using ${step.strategy.toUpperCase()}`;
     if (step.action === 'encode_data') return `Encode [${step.target}] using ${step.strategy.toUpperCase()}`;
+    if (step.action === 'apply_pca') return `Apply PCA (Reduce dataset to ${step.components} components)`;
     
     return `Unknown Action: ${step.action}`;
 }
