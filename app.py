@@ -436,5 +436,33 @@ def get_column_summary():
             "data": value_counts.values.tolist()
         })
     
+@app.route('/get_correlation_matrix', methods=['GET'])
+def get_correlation_matrix():
+    """Calculates a Pearson correlation matrix for all numeric columns."""
+    try:
+        files = [f for f in os.listdir(UPLOAD_FOLDER) if f.endswith('.parquet')]
+        if not files:
+            return jsonify({"status": "error", "message": "No dataset found."}), 404
+
+        parquet_path = os.path.join(UPLOAD_FOLDER, files[0])
+        # LAZY LOAD: Dask only reads numeric columns for this math
+        df = dd.read_parquet(parquet_path)
+        numeric_df = df.select_dtypes(include=['number'])
+        
+        if len(numeric_df.columns) < 2:
+            return jsonify({"status": "error", "message": "Need at least 2 numeric columns."}), 400
+
+        # Compute the N x N matrix
+        corr_matrix = numeric_df.corr().compute()
+        
+        return jsonify({
+            "status": "success",
+            "columns": corr_matrix.columns.tolist(),
+            "values": corr_matrix.values.tolist()
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+    
+    
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

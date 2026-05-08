@@ -487,3 +487,89 @@ async function fetchAndDisplaySchema() {
         console.error("Error fetching schema:", error);
     }
 }
+
+async function renderCorrelationHeatmap() {
+    const grid = document.getElementById('heatmapGrid');
+    const colContainer = document.getElementById('colLabels');
+    const rowContainer = document.getElementById('rowLabels');
+    const container = document.getElementById('heatmapContainer');
+    
+    container.style.display = 'block';
+    grid.innerHTML = '<p style="color:white">Calculating Matrix...</p>';
+
+    try {
+        const response = await fetch('/get_correlation_matrix');
+        const result = await response.json();
+
+        if (result.status === "success") {
+            const cols = result.columns;
+            const vals = result.values;
+            const n = cols.length;
+            const cellSize = n > 10 ? "30px" : "50px"; // Shrink cells if there are many columns
+
+            // 1. Setup Grid Dimensions
+            grid.style.gridTemplateColumns = `repeat(${n}, ${cellSize})`;
+            grid.innerHTML = '';
+            colContainer.innerHTML = '';
+            rowContainer.innerHTML = '';
+
+            // 2. Create Column Labels (Top)
+            cols.forEach(col => {
+                const label = document.createElement('div');
+                label.style.width = cellSize;
+                label.style.fontSize = "10px";
+                label.style.textAlign = "center";
+                label.style.paddingBottom = "5px";
+                label.style.writingMode = "vertical-rl"; // Rotate text to save space
+                label.style.transform = "rotate(180deg)";
+                label.textContent = col;
+                colContainer.appendChild(label);
+            });
+
+            // 3. Create Row Labels (Left) and Grid Cells
+            vals.forEach((row, rowIndex) => {
+                // Add the row label for this row
+                const rLabel = document.createElement('div');
+                rLabel.style.height = cellSize;
+                rLabel.style.fontSize = "10px";
+                rLabel.style.display = "flex";
+                rLabel.style.alignItems = "center";
+                rLabel.style.justifyContent = "flex-end";
+                rLabel.style.paddingRight = "10px";
+                rLabel.textContent = cols[rowIndex];
+                rowContainer.appendChild(rLabel);
+
+                row.forEach((val, colIndex) => {
+                    const square = document.createElement('div');
+                    square.style.width = cellSize;
+                    square.style.height = cellSize;
+                    square.style.display = "flex";
+                    square.style.alignItems = "center";
+                    square.style.justifyContent = "center";
+                    square.style.fontSize = "10px";
+                    square.style.fontWeight = "bold";
+                    
+                    // Show full info on hover
+                    square.title = `${cols[rowIndex]} vs ${cols[colIndex]}: ${val.toFixed(3)}`;
+                    
+                    // Dynamic Coloring (Red = Positive, Blue = Negative)
+                    let red = val > 0 ? 255 : 255 + (val * 255);
+                    let green = 215 - (Math.abs(val) * 150);
+                    let blue = val < 0 ? 255 : 255 - (val * 255);
+                    
+                    square.style.backgroundColor = `rgb(${red}, ${green}, ${blue})`;
+                    square.style.color = Math.abs(val) > 0.6 ? "#000" : "#fff";
+                    
+                    // Display value inside square if the grid isn't too large
+                    if (n < 12) square.textContent = val.toFixed(1);
+                    
+                    grid.appendChild(square);
+                });
+            });
+        }
+    } catch (error) {
+        console.error("Heatmap Error:", error);
+        grid.innerHTML = "Error loading heatmap.";
+    }
+}
+
