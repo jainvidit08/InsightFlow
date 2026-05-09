@@ -462,7 +462,51 @@ def get_correlation_matrix():
         })
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/get_scatter_data', methods=['GET'])
+def get_scatter_data():
+    """Lazily samples 5,000 rows across two columns for a scatter plot."""
+    col_x = request.args.get('x')
+    col_y = request.args.get('y')
     
+    try:
+        files = [f for f in os.listdir(UPLOAD_FOLDER) if f.endswith('.parquet')]
+        if not files:
+            return jsonify({"status": "error", "message": "No dataset found."}), 404
+
+        parquet_path = os.path.join(UPLOAD_FOLDER, files[0])
+        
+        # 1. Load data lazily
+        df = dd.read_parquet(parquet_path)
+
+        if col_x not in df.columns or col_y not in df.columns:
+            return jsonify({"status": "error", "message": "Selected columns not found."}), 404
+
+        # 2. Isolate the two columns and drop NaNs (scatter plots break on nulls)
+        subset = df[[col_x, col_y]].dropna()
+        
+        # 3. Calculate the fraction to get roughly 5,000 rows
+        total_rows = len(subset)
+        if total_rows == 0:
+            return jsonify({"status": "success", "data": []})
+            
+        frac = min(5000.0 / total_rows, 1.0)
+
+        # 4. Use Dask to sample across all partitions and compute the result
+        print(f"Sampling {frac*100:.2f}% of data for scatter plot...")
+        sampled_df = subset.sample(frac=frac).compute()
+        
+        # 5. Format the data exactly how Chart.js expects it: [{'x': 1, 'y': 2}, ...]
+        chart_data = [{"x": row[col_x], "y": row[col_y]} for _, row in sampled_df.iterrows()]
+
+        return jsonify({
+            "status": "success",
+            "data": chart_data
+        })
+        
+    except Exception as e:
+        print(f"Scatter Plot Error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
     
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

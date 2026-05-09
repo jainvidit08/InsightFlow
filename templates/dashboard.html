@@ -41,13 +41,21 @@
                     <tbody id="schemaBody">
                         </tbody>
                 </table>
-            </section>
-        <section id="insightsGallery" style="margin-top: 30px; display: none; background-color: var(--panel-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
-            <h2 style="margin-top: 0; color: #FFD700;">Data Insights Gallery</h2>
+        </section>
+<section id="insightsGallery" style="margin-top: 30px; display: none; background-color: var(--panel-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+            <h2 style="margin-top: 0; color: var(--primary-yellow);">Data Insights Gallery</h2>
+            
+            <div id="scatterControls" style="display: none; margin-bottom: 15px; padding: 10px; background-color: #1E1E1E; border-radius: 5px; border-left: 4px solid var(--primary-yellow);">
+                <label style="font-size: 0.9em; color: #aaa;">Compare with Column (Y-Axis):</label>
+                <select id="yAxisSelect" class="input-theme" style="margin-left: 10px; width: 200px;"></select>
+                <button class="btn-secondary" onclick="fetchScatterPlot()" style="margin-left: 10px;">Draw Scatter Plot</button>
+            </div>
+
             <div style="position: relative; height: 300px; width: 100%;">
                 <canvas id="mainChart"></canvas>
             </div>
-            <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
                 <button class="btn-secondary" onclick="renderCorrelationHeatmap()">View Global Correlation Heatmap</button>
             </div>
 
@@ -56,11 +64,8 @@
     
                 <div id="heatmapWrapper" style="display: inline-grid; gap: 5px; background-color: var(--panel-bg); padding: 15px; border-radius: 8px;">
                     <div style="grid-column: 1; grid-row: 1;"></div>
-                    
                     <div id="colLabels" style="grid-column: 2; grid-row: 1; display: flex;"></div>
-                    
                     <div id="rowLabels" style="grid-column: 1; grid-row: 2; display: flex; flex-direction: column;"></div>
-                    
                     <div id="heatmapGrid" style="grid-column: 2; grid-row: 2; display: grid; gap: 2px;"></div>
                 </div>
 

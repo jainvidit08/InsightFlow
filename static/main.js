@@ -379,7 +379,36 @@ document.getElementById('clearBtn').addEventListener('click', async () => {
 let myChart = null; 
 
 async function renderChart(columnName) {
+    // 1. Unhide the entire Insights Gallery
     document.getElementById('insightsGallery').style.display = 'block';
+    
+    // --- NEW: SCATTER PLOT CONTROLS LOGIC ---
+    // Check if the column is a number (int or float) using the global schema we saved
+    if (window.current_schema && (window.current_schema[columnName].includes('int') || window.current_schema[columnName].includes('float'))) {
+        
+        // Show the scatter controls
+        document.getElementById('scatterControls').style.display = 'block';
+        const ySelect = document.getElementById('yAxisSelect');
+        ySelect.innerHTML = ''; // Clear old options
+        
+        // Fill the dropdown with OTHER numeric columns to compare against
+        for (const [col, type] of Object.entries(window.current_schema)) {
+            if (col !== columnName && (type.includes('int') || type.includes('float'))) {
+                const opt = document.createElement('option');
+                opt.value = col;
+                opt.textContent = col;
+                ySelect.appendChild(opt);
+            }
+        }
+        // Store the X-axis column globally so fetchScatterPlot() can use it later
+        window.currentX = columnName;
+        
+    } else {
+        // If it's a Text/String column, hide the scatter controls entirely
+        document.getElementById('scatterControls').style.display = 'none';
+    }
+    // ----------------------------------------
+
     const ctx = document.getElementById('mainChart').getContext('2d');
 
     // Add a loading indicator to the title so the user knows Dask is thinking
@@ -388,7 +417,7 @@ async function renderChart(columnName) {
     titleElement.style.color = "#AAAAAA";
 
     try {
-        // 1. Ask the Python backend to calculate the summary
+        // 2. Ask the Python backend to calculate the summary (Histogram or Categories)
         const response = await fetch(`/get_column_summary?column=${encodeURIComponent(columnName)}`);
         const result = await response.json();
 
@@ -401,7 +430,7 @@ async function renderChart(columnName) {
                 myChart.destroy(); // Prevent chart overlapping
             }
 
-            // 2. Inject the real Dask data into Chart.js
+            // 3. Inject the real Dask data into Chart.js
             myChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -435,12 +464,14 @@ async function renderChart(columnName) {
         titleElement.textContent = "Data Insights Gallery";
     }
 }
+
 async function fetchAndDisplaySchema() {
     try {
         const response = await fetch('/get_columns');
         const result = await response.json();
 
         if (result.status === "success") {
+            window.current_schema = result.schema;
             document.getElementById('schemaSection').style.display = 'block';
             document.getElementById('rowCountDisplay').textContent = `Total Rows: ${result.total_rows.toLocaleString()}`;
 
@@ -573,3 +604,70 @@ async function renderCorrelationHeatmap() {
     }
 }
 
+// --- NEW CODE: SCATTER PLOT FETCH AND RENDER ---
+async function fetchScatterPlot() {
+    const colY = document.getElementById('yAxisSelect').value;
+    const colX = window.currentX; // The column you originally clicked "Visualize" on
+    
+    if (!colX || !colY) return;
+
+    const titleElement = document.querySelector('#insightsGallery h2');
+    titleElement.textContent = `Sampling 5,000 points: ${colX} vs ${colY}...`;
+    titleElement.style.color = "#AAAAAA";
+
+    try {
+        const response = await fetch(`/get_scatter_data?x=${encodeURIComponent(colX)}&y=${encodeURIComponent(colY)}`);
+        const result = await response.json();
+
+        if (result.status === "success") {
+            // Update Title
+            titleElement.textContent = `Scatter Plot: ${colX} vs ${colY}`;
+            titleElement.style.color = "var(--primary-yellow)";
+
+            if (myChart) {
+                myChart.destroy(); // Prevent overlapping
+            }
+
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            myChart = new Chart(ctx, {
+                type: 'scatter', // Changing from 'bar' to 'scatter'
+                data: {
+                    datasets: [{
+                        label: `${colX} vs ${colY} (Sampled)`,
+                        data: result.data, // The 5,000 coordinate pairs!
+                        backgroundColor: 'rgba(255, 215, 0, 0.6)', // Yellow theme
+                        borderColor: 'rgba(255, 215, 0, 1)',
+                        borderWidth: 1,
+                        pointRadius: 3, // Make the dots easy to see
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { 
+                            type: 'linear', 
+                            position: 'bottom',
+                            title: { display: true, text: colX, color: '#fff' },
+                            ticks: { color: '#ccc' }
+                        },
+                        y: { 
+                            title: { display: true, text: colY, color: '#fff' },
+                            ticks: { color: '#ccc' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#fff' } }
+                    }
+                }
+            });
+        } else {
+            alert("Error loading scatter plot: " + result.message);
+            titleElement.textContent = "Data Insights Gallery";
+        }
+    } catch (error) {
+        console.error("Error fetching scatter data:", error);
+        titleElement.textContent = "Data Insights Gallery";
+    }
+}
