@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import dask.dataframe as dd
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify,send_file
 import json
 import sqlite3
 import shutil
@@ -9,6 +9,7 @@ from dask_ml.preprocessing import StandardScaler
 from dask_ml.decomposition import PCA
 import dask.array as da
 import numpy as np
+import pyarrow.parquet as pq
 
 app = Flask(__name__)
 
@@ -507,6 +508,58 @@ def get_scatter_data():
     except Exception as e:
         print(f"Scatter Plot Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
-    
+
+@app.route('/download', methods=['GET'])
+def download():
+    """Merges Dask directory into a single Parquet file and streams it."""
+    try:
+        # Find the active dataset folder (ignoring single files we might have already merged)
+        files = [f for f in os.listdir(UPLOAD_FOLDER) if f.endswith('.parquet') and not f.startswith('single_')]
+        if not files:
+            return jsonify({"status": "error", "message": "No dataset found to download."}), 404
+
+        parquet_dir = os.path.join(UPLOAD_FOLDER, files[0])
+        single_file_path = os.path.join(UPLOAD_FOLDER, "single_cleaned_dataset.parquet")
+
+        # If Dask created a directory, merge it into a single file
+        if os.path.isdir(parquet_dir):
+            print("Converting Dask Parquet directory into a single file safely...")
+            part_files = [f for f in os.listdir(parquet_dir) if f.endswith('.parquet')]
+            
+            if not part_files:
+                return jsonify({"status": "error", "message": "Dataset is empty."}), 404
+
+            # Get schema from the first partition
+            first_part_path = os.path.join(parquet_dir, part_files[0])
+            schema = pq.read_schema(first_part_path)
+
+            # Open a writer for the single file
+            with pq.ParquetWriter(single_file_path, schema) as writer:
+                for part_name in part_files:
+                    part_path = os.path.join(parquet_dir, part_name)
+                    pf = pq.ParquetFile(part_path)
+                    
+                    # Read and write in tiny memory-safe batches
+                    for batch in pf.iter_batches():
+                        writer.write_batch(batch)
+            
+            download_target = single_file_path
+        else:
+            # Fallback just in case it's already a single file
+            download_target = parquet_dir
+
+        print(f"Opening stream for: {download_target}")
+        
+        # Stream the single, perfectly formatted .parquet file!
+        return send_file(
+            download_target,
+            as_attachment=True,
+            download_name="cleaned_dataset.parquet",
+            mimetype="application/octet-stream"
+        )
+    except Exception as e:
+        print(f"Download error: {e}")
+        return jsonify({"status": "error", "message": "Failed to stream file."}), 500
+        
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

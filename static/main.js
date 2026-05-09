@@ -671,3 +671,10 @@ async function fetchScatterPlot() {
         titleElement.textContent = "Data Insights Gallery";
     }
 }
+
+// --- NEW CODE: STREAMING DOWNLOAD ---
+function downloadDataset() {
+    // Redirecting the window to this route triggers the browser's native download manager.
+    // This allows the browser to securely accept the chunked stream from Flask!
+    window.location.href = '/download';
+}
