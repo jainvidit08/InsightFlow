@@ -7,14 +7,44 @@ window.addEventListener('DOMContentLoaded', async () => {
         if (state.status === "success") {
             // 1. Restore the Schema UI
             if (state.schema) {
+                // --- FIX 1: Restore the global schema so Scatter Plots work after refresh! ---
+                window.current_schema = state.schema; 
+                
                 document.getElementById('schemaSection').style.display = 'block';
                 document.getElementById('rowCountDisplay').textContent = `Total Rows: ${state.row_count.toLocaleString()}`;
-                
+
                 const schemaBody = document.getElementById('schemaBody');
                 schemaBody.innerHTML = ''; 
+
+                // --- FIX 2: Rebuild the table WITH the Visualize buttons ---
                 for (const [columnName, dataType] of Object.entries(state.schema)) {
                     const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${columnName}</td><td>${dataType}</td>`;
+                    tr.style.borderBottom = "1px solid #333";
+                    
+                    const tdName = document.createElement('td');
+                    tdName.style.padding = "8px 0";
+                    tdName.innerHTML = `<b>${columnName}</b>`;
+                    
+                    const tdType = document.createElement('td');
+                    tdType.style.color = "#AAAAAA";
+                    tdType.textContent = dataType.replace('object', 'Text/String').replace('float64', 'Decimal').replace('int64', 'Integer');
+                    
+                    // The Restored Visualize Button
+                    const tdAction = document.createElement('td');
+                    const visBtn = document.createElement('button');
+                    visBtn.textContent = 'Visualize';
+                    visBtn.className = 'btn-secondary';
+                    visBtn.style.padding = '5px 10px';
+                    visBtn.style.fontSize = '0.8em';
+                    
+                    visBtn.onclick = () => renderChart(columnName);
+                    
+                    tdAction.appendChild(visBtn);
+
+                    tr.appendChild(tdName);
+                    tr.appendChild(tdType);
+                    tr.appendChild(tdAction); 
+                    
                     schemaBody.appendChild(tr);
                 }
             }

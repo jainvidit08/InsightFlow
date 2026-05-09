@@ -222,3 +222,65 @@ header {
     background-color: #ff4c4c;
     color: var(--dark-bg);
 }
+
+/* ==========================================
+   FOOTER STYLING
+   ========================================== */
+.app-footer {
+    margin-top: 60px;
+    background-color: var(--panel-bg);
+    border-top: 3px solid var(--primary-yellow);
+    padding: 30px 20px 15px;
+    color: var(--text-light);
+    font-size: 0.9em;
+    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    max-width: 800px;
+    margin: 0 auto;
+    gap: 20px;
+}
+
+.footer-brand h4 {
+    color: var(--primary-yellow);
+    margin: 0 0 10px 0;
+    font-size: 1.2em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.footer-brand p {
+    margin: 0;
+    color: #AAAAAA;
+    max-width: 300px;
+    line-height: 1.4;
+}
+
+.footer-tech p {
+    margin: 5px 0;
+    color: #CCCCCC;
+}
+
+.footer-tech strong {
+    color: var(--text-light);
+}
+
+.footer-bottom {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 15px;
+    border-top: 1px solid #444;
+    font-size: 0.85em;
+    color: #888;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.footer-bottom p {
+    margin: 5px 0;
+}
