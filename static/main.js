@@ -521,11 +521,10 @@ async function fetchAndDisplaySchema() {
 
 async function renderCorrelationHeatmap() {
     const grid = document.getElementById('heatmapGrid');
-    const colContainer = document.getElementById('colLabels');
-    const rowContainer = document.getElementById('rowLabels');
     const container = document.getElementById('heatmapContainer');
     
     container.style.display = 'block';
+    grid.style.gridTemplateColumns = 'none'; // Reset before loading
     grid.innerHTML = '<p style="color:white">Calculating Matrix...</p>';
 
     try {
@@ -536,40 +535,50 @@ async function renderCorrelationHeatmap() {
             const cols = result.columns;
             const vals = result.values;
             const n = cols.length;
-            const cellSize = n > 10 ? "30px" : "50px"; // Shrink cells if there are many columns
+            const cellSize = n > 10 ? "30px" : "50px"; 
 
-            // 1. Setup Grid Dimensions
-            grid.style.gridTemplateColumns = `repeat(${n}, ${cellSize})`;
             grid.innerHTML = '';
-            colContainer.innerHTML = '';
-            rowContainer.innerHTML = '';
+            
+            // --- THE SINGLE GRID FIX ---
+            // Col 1 is "max-content" to fit the text names perfectly. 
+            // The rest are identical squares.
+            grid.style.gridTemplateColumns = `max-content repeat(${n}, ${cellSize})`;
 
-            // 2. Create Column Labels (Top)
+            // 1. Create Top-Left Empty Corner Cell
+            const emptyCell = document.createElement('div');
+            grid.appendChild(emptyCell);
+
+            // 2. Create Top Column Labels
             cols.forEach(col => {
                 const label = document.createElement('div');
                 label.style.width = cellSize;
-                label.style.fontSize = "10px";
-                label.style.textAlign = "center";
-                label.style.paddingBottom = "5px";
-                label.style.writingMode = "vertical-rl"; // Rotate text to save space
+                label.style.height = "120px"; // Give plenty of room for rotated text
+                label.style.display = "flex";
+                label.style.alignItems = "flex-end"; // Aligns text to the bottom so it touches the grid
+                label.style.justifyContent = "center";
+                label.style.fontSize = "11px";
+                label.style.writingMode = "vertical-rl";
                 label.style.transform = "rotate(180deg)";
+                label.style.paddingBottom = "5px";
                 label.textContent = col;
-                colContainer.appendChild(label);
+                grid.appendChild(label);
             });
 
-            // 3. Create Row Labels (Left) and Grid Cells
+            // 3. Create Row Labels AND Data Cells
             vals.forEach((row, rowIndex) => {
-                // Add the row label for this row
+                
+                // First item in the row is the Row Label
                 const rLabel = document.createElement('div');
                 rLabel.style.height = cellSize;
-                rLabel.style.fontSize = "10px";
                 rLabel.style.display = "flex";
                 rLabel.style.alignItems = "center";
                 rLabel.style.justifyContent = "flex-end";
                 rLabel.style.paddingRight = "10px";
+                rLabel.style.fontSize = "11px";
                 rLabel.textContent = cols[rowIndex];
-                rowContainer.appendChild(rLabel);
+                grid.appendChild(rLabel);
 
+                // The rest of the items in the row are the color squares
                 row.forEach((val, colIndex) => {
                     const square = document.createElement('div');
                     square.style.width = cellSize;
@@ -580,10 +589,8 @@ async function renderCorrelationHeatmap() {
                     square.style.fontSize = "10px";
                     square.style.fontWeight = "bold";
                     
-                    // Show full info on hover
                     square.title = `${cols[rowIndex]} vs ${cols[colIndex]}: ${val.toFixed(3)}`;
                     
-                    // Dynamic Coloring (Red = Positive, Blue = Negative)
                     let red = val > 0 ? 255 : 255 + (val * 255);
                     let green = 215 - (Math.abs(val) * 150);
                     let blue = val < 0 ? 255 : 255 - (val * 255);
@@ -591,7 +598,6 @@ async function renderCorrelationHeatmap() {
                     square.style.backgroundColor = `rgb(${red}, ${green}, ${blue})`;
                     square.style.color = Math.abs(val) > 0.6 ? "#000" : "#fff";
                     
-                    // Display value inside square if the grid isn't too large
                     if (n < 12) square.textContent = val.toFixed(1);
                     
                     grid.appendChild(square);
@@ -603,7 +609,6 @@ async function renderCorrelationHeatmap() {
         grid.innerHTML = "Error loading heatmap.";
     }
 }
-
 // --- NEW CODE: SCATTER PLOT FETCH AND RENDER ---
 async function fetchScatterPlot() {
     const colY = document.getElementById('yAxisSelect').value;

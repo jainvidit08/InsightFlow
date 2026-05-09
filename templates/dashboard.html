@@ -62,12 +62,7 @@
             <div id="heatmapContainer" style="display: none; margin-top: 20px; overflow-x: auto;">
                 <h3 style="color: var(--primary-yellow);">Global Correlation Matrix</h3>
     
-                <div id="heatmapWrapper" style="display: inline-grid; gap: 5px; background-color: var(--panel-bg); padding: 15px; border-radius: 8px;">
-                    <div style="grid-column: 1; grid-row: 1;"></div>
-                    <div id="colLabels" style="grid-column: 2; grid-row: 1; display: flex;"></div>
-                    <div id="rowLabels" style="grid-column: 1; grid-row: 2; display: flex; flex-direction: column;"></div>
-                    <div id="heatmapGrid" style="grid-column: 2; grid-row: 2; display: grid; gap: 2px;"></div>
-                </div>
+                <div id="heatmapGrid" style="display: grid; gap: 2px; background-color: var(--panel-bg); padding: 15px; border-radius: 8px; width: max-content;"></div>
 
                 <div id="heatmapLegend" style="margin-top: 15px; font-size: 0.8em; color: #aaa;">
                     <span style="display: inline-block; width: 15px; height: 15px; background: rgb(255, 65, 54); margin-right: 5px;"></span> +1.0 (Positive)
