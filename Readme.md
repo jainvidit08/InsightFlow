@@ -260,13 +260,13 @@ For histograms, Dask computes frequency bins using `dask.array` — only counts,
 
 ---
 
-## 🗺️ Roadmap
+<!-- ## 🗺️ Roadmap
 
 - [ ] Multi-file merge support
 - [ ] ML pipeline integration (model training on processed data)
 - [ ] AWS S3 chunked upload support
 - [ ] NLP preprocessing module (tokenization, TF-IDF)
-- [ ] Dark / Light theme toggle
+- [ ] Dark / Light theme toggle -->
 
 
 <div align="center">
