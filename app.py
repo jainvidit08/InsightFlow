@@ -560,6 +560,61 @@ def download():
     except Exception as e:
         print(f"Download error: {e}")
         return jsonify({"status": "error", "message": "Failed to stream file."}), 500
+    
+@app.route('/download_csv', methods=['GET'])
+def download_csv():
+    """Translates the Dask Parquet directory into a CSV on-the-fly and streams it."""
+    try:
+        # 1. Find the active dataset folder
+        files = [f for f in os.listdir(UPLOAD_FOLDER) if f.endswith('.parquet') and not f.startswith('single_')]
+        if not files:
+            return jsonify({"status": "error", "message": "No dataset found to download."}), 404
+
+        parquet_dir = os.path.join(UPLOAD_FOLDER, files[0])
+        csv_output_path = os.path.join(UPLOAD_FOLDER, "cleaned_dataset.csv")
+
+        # Clean up any old CSV conversions
+        if os.path.exists(csv_output_path):
+            os.remove(csv_output_path)
+
+        # 2. Iterate through the Parquet directory and append to CSV
+        if os.path.isdir(parquet_dir):
+            print("Translating Parquet directory to CSV safely...")
+            part_files = [f for f in os.listdir(parquet_dir) if f.endswith('.parquet')]
+            
+            if not part_files:
+                return jsonify({"status": "error", "message": "Dataset is empty."}), 404
+
+            first_batch = True
+            for part_name in part_files:
+                part_path = os.path.join(parquet_dir, part_name)
+                pf = pq.ParquetFile(part_path)
+                
+                # Read and append in tiny memory-safe batches
+                for batch in pf.iter_batches():
+                    df_batch = batch.to_pandas()
+                    df_batch.to_csv(csv_output_path, mode='a', index=False, header=first_batch)
+                    first_batch = False
+            
+            download_target = csv_output_path
+        else:
+            # Fallback just in case it is a single file
+            df = pd.read_parquet(parquet_dir)
+            df.to_csv(csv_output_path, index=False)
+            download_target = csv_output_path
+
+        print(f"Opening CSV stream for: {download_target}")
+        
+        # 3. Stream the translated CSV file to the browser
+        return send_file(
+            download_target,
+            as_attachment=True,
+            download_name="cleaned_dataset.csv",
+            mimetype="text/csv"
+        )
+    except Exception as e:
+        print(f"CSV Download error: {e}")
+        return jsonify({"status": "error", "message": "Failed to stream CSV file."}), 500
         
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

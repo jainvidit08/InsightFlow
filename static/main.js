@@ -678,3 +678,14 @@ function downloadDataset() {
     // This allows the browser to securely accept the chunked stream from Flask!
     window.location.href = '/download';
 }
+
+// --- NEW CODE: CSV DOWNLOAD WITH WARNING ---
+function downloadCSV() {
+    // 1. The Safety Warning
+    const confirmDownload = confirm("Warning: Translating this compressed dataset back into a raw CSV file will take significantly more time and CPU than Parquet. Do you wish to proceed?");
+    
+    // 2. If they accept, redirect to open the CSV stream
+    if (confirmDownload) {
+        window.location.href = '/download_csv';
+    }
+}
