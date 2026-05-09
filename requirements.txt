@@ -1,0 +1,7 @@
+flask>=2.3
+dask[dataframe]>=2024.1
+pyarrow>=14.0
+pandas>=2.0
+numpy>=1.26
+scikit-learn>=1.4
+scipy>=1.12
