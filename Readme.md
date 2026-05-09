@@ -271,7 +271,9 @@ For histograms, Dask computes frequency bins using `dask.array` — only counts,
 
 <div align="center">
 
-Built with 🔥 by **[Your Name]** &nbsp;·&nbsp; [LinkedIn](https://linkedin.com) &nbsp;·&nbsp; [Portfolio](https://yourportfolio.com)
+Built with 🔥 by **Vidit Jain** &nbsp;·&nbsp; [LinkedIn](https://www.linkedin.com/in/jvdt13082/) &nbsp;·&nbsp; 
+
+<!-- [Portfolio](https://yourportfolio.com) -->
 
 *If this project helped you, consider giving it a ⭐ on GitHub!*
 
